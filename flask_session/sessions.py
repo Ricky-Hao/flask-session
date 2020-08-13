@@ -13,6 +13,7 @@ import pytz
 import time
 from datetime import datetime
 from uuid import uuid4
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -22,7 +23,6 @@ from flask.sessions import SessionInterface as FlaskSessionInterface
 from flask.sessions import SessionMixin
 from werkzeug.datastructures import CallbackDict
 from itsdangerous import Signer, BadSignature, want_bytes
-
 
 PY2 = sys.version_info[0] == 2
 if not PY2:
@@ -41,6 +41,7 @@ class ServerSideSession(CallbackDict, SessionMixin):
     def __init__(self, initial=None, sid=None, permanent=None):
         def on_update(self):
             self.modified = True
+
         CallbackDict.__init__(self, initial, on_update)
         self.sid = sid
         if permanent:
@@ -281,7 +282,7 @@ class MemcachedSessionInterface(SessionInterface):
         else:
             val = self.serializer.dumps(dict(session))
         self.client.set(full_session_key, val, self._get_memcache_timeout(
-                        total_seconds(app.permanent_session_lifetime)))
+            total_seconds(app.permanent_session_lifetime)))
         if self.use_signer:
             session_id = self._get_signer(app).sign(want_bytes(session.sid))
         else:
@@ -449,10 +450,9 @@ class MongoDBSessionInterface(SessionInterface):
         secure = self.get_cookie_secure(app)
         expires = self.get_expiration_time(app, session)
         val = self.serializer.dumps(dict(session))
-        self.store.update({'id': store_id},
-                          {'id': store_id,
-                           'val': val,
-                           'expiration': expires}, True)
+        self.store.update_one({'id': store_id},
+                              {"$set": {'id': store_id, 'val': val, 'expiration': expires}},
+                              upsert=True)
         if self.use_signer:
             session_id = self._get_signer(app).sign(want_bytes(session.sid))
         else:

@@ -38,7 +38,7 @@ def total_seconds(td):
 class ServerSideSession(CallbackDict, SessionMixin):
     """Baseclass for server-side based sessions."""
 
-    def __init__(self, initial=None, sid=None, permanent=None):
+    def __init__(self, initial=None, sid=None, permanent=None, extra: dict = None):
         def on_update(self):
             self.modified = True
 
@@ -47,6 +47,7 @@ class ServerSideSession(CallbackDict, SessionMixin):
         if permanent:
             self.permanent = permanent
         self.modified = False
+        self.extra = {} if extra is None else extra
 
 
 class RedisSession(ServerSideSession):
@@ -422,15 +423,15 @@ class MongoDBSessionInterface(SessionInterface):
         else:
             utc_now = datetime.utcnow()
 
-        if document and document.get('expiration') <= utc_now:
+        if document and document.pop('expiration') <= utc_now:
             # Delete expired session
             self.store.remove({'id': store_id})
             document = None
         if document is not None:
             try:
-                val = document['val']
+                val = document.pop('val')
                 data = self.serializer.loads(want_bytes(val))
-                return self.session_class(data, sid=sid)
+                return self.session_class(data, sid=sid, extra=document)
             except:
                 return self.session_class(sid=sid, permanent=self.permanent)
         return self.session_class(sid=sid, permanent=self.permanent)

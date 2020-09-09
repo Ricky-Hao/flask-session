@@ -423,7 +423,7 @@ class MongoDBSessionInterface(SessionInterface):
         else:
             utc_now = datetime.utcnow()
 
-        if document and document.pop('expiration') <= utc_now:
+        if document and (document['expiration'] is None or document.pop('expiration') <= utc_now):
             # Delete expired session
             self.store.remove({'id': store_id})
             document = None
